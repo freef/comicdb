@@ -14,12 +14,11 @@ const upload = multer({dest: 'uploads/', storage: multer.memoryStorage()})
 const cloudinaryUpload = require('../../lib/cloudinaryUpload.js')
 const cloudinaryDelete = require('../../lib/cloudinaryDelete.js')
 const RSS = require('rss')
-const fs = require('fs')
 const feed = new RSS({ title: 'Flopsy & Bupp', feed_url: 'test.com/feed', description: 'A web comic', site_url: 'test.com', copyright: 'Matt Freeland 2019' })
 
 // INDEX
 router.get('/comics', (req, res, next) => {
-  Comic.find()
+  Comic.find({'pubdate': {'$lte': new Date()}}).sort({pubdate: 1})
     .then(comics => {
       return comics.map(comic => comic.toObject())
     })
@@ -31,6 +30,7 @@ router.get('/comics', (req, res, next) => {
 router.get('/comics/:id', (req, res, next) => {
   Comic.findById(req.params.id)
     .then(handle404)
+    .then(comic => comic.pubdate <= new Date() ? comic : next)
     .then(comic => res.status(200).json({ comic: comic.toObject() }))
     .catch(next)
 })
@@ -87,7 +87,7 @@ router.delete('/comics/:id', requireToken, (req, res, next) => {
 
 // RSS
 router.get('/rss', (req, res, next) => {
-  Comic.find()
+  Comic.find({'pubdate': {'$lte': new Date()}})
     .then(comics => {
       return comics.map(comic => comic.toObject())
     })
